@@ -104,19 +104,32 @@ class SharePointGraph:
             return True, 'Arquivo deletado.'
         else:
             return False, f"Erro ao deletar arquivo. {response.text}"
-     
-    def get_list_items(self, site_id, list_id, order_by=None):
+    
+    def get_list_items(self, site_id, list_id, order_by=None, top=None, page_limit=None):
         if site_id and list_id:
             url = f"{self.graph_api_base_url}/sites/{site_id}/lists/{list_id}/items?expand=columns,items(expand=fields)"
         else:
             return False, "É necessário fornecer o site_id e o list_id"
         if order_by:
             url += f"&$orderby={order_by}"
+        if top:
+            url += f"&$top={top}"
 
-        response = requests.get(url, headers=self.headers)
-        if response.status_code == 200:
-            data = response.json()
-            return True, data['value']
-        else:
-            return False, f"Erro ao obter itens da lista. {response.text}"
-       
+        all_items = []
+        page_count = 0
+
+        while url:
+            response = requests.get(url, headers=self.headers)
+            if response.status_code == 200:
+                data = response.json()
+                items = data["value"]
+                all_items.extend(items)
+
+                url = data.get("@odata.nextLink", None)
+
+                page_count += 1
+                if page_limit and page_count >= int(page_limit):
+                    break
+            else:
+                return False, f"Erro ao obter itens da lista. {response.text}"
+        return True, all_items

@@ -128,7 +128,7 @@ class SharePointGraph:
                 url = data.get("@odata.nextLink", None)
 
                 page_count += 1
-                if page_limit and page_count >= int(page_limit):
+                if (page_limit and page_count >= int(page_limit)) or page_limit == None:
                     break
             else:
                 return False, f"Erro ao obter itens da lista. {response.text}"

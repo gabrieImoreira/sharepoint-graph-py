@@ -31,7 +31,7 @@ class SharePointGraph:
         else:
             return False, f"Erro ao criar pasta: {response.text}"
 
-    def list_drive_items(self, drive_id, item_id=None):
+    def get_drive_items(self, drive_id, item_id=None):
         if item_id:
             endpoint = f"{self.graph_api_base_url}/drives/{drive_id}/items/{item_id}/children"
         else:
@@ -53,6 +53,35 @@ class SharePointGraph:
         else:
             return False, f"Erro ao listar pastas: {response.text}"
     
+    def upload_file(self, file_path, file_name, parent_item_id, drive_id=None, site_id=None):
+        if drive_id:
+            url = f"{self.graph_api_base_url}/drives/{drive_id}/items/{parent_item_id}:/{file_name}:/content"
+        elif site_id:
+            url = f"{self.graph_api_base_url}/sites/{site_id}/drive/items/{parent_item_id}:/{file_name}:/content"
+        else:
+            return False, "É necessário fornecer o drive_id ou o site_id"
+
+        with open(file_path, "rb") as file:
+            file_content = file.read()
+            
+        response = requests.put(url, data=file_content, headers=self.headers)
+        if response.status_code in [200,201]:
+            return True, response.json()['id']
+        else:
+            return False, f"Erro ao realizar upload do arquivo. {response.text}"
+
+    def download_file(self, file_name, item_id, drive_id):
+        url = f"{self.graph_api_base_url}/drives/{drive_id}/items/{item_id}/content"
+
+        response = requests.get(url, headers=self.headers)
+        if response.status_code in [200,201]:
+            with open(file_name, 'wb') as file:
+                file.write(response.content)
+            return True, f'File downloaded {file_name}.'
+        else:
+            return False, f"Erro ao realizar download do arquivo. {response.text}"
+
+
     def upload_file(self, file_path, file_name, parent_item_id, drive_id=None, site_id=None):
         if drive_id:
             url = f"{self.graph_api_base_url}/drives/{drive_id}/items/{parent_item_id}:/{file_name}:/content"
